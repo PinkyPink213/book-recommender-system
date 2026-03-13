@@ -1,0 +1,15 @@
+chromadb
+sentence-transformers
+langchain
+langchain-community
+langchain-chroma
+langchain-openai
+langchain-text-splitters
+numpy
+pandas
+python-dotenv
+openai
+gradio
+jinja2
+markupsafe
+protobuf

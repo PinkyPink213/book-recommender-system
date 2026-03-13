@@ -1,0 +1,18 @@
+services:
+  book-recommender:
+    build: .
+    container_name: book-recommender
+
+    ports:
+      - "7860:7860"
+
+    volumes:
+      - .:/app
+
+    environment:
+      - PYTHONPATH=/app
+
+    command: python -m app.gradio_app
+
+# docker compose up -d
+# docker compose down
