@@ -31,19 +31,16 @@ def chat_recommend(describe, category, emotion, chat_history):
     data = json.loads(answer)
 
     gallery = []
-
     message = "Here are some books you might enjoy:\n\n"
 
     for item in data["books"]:
 
         isbn = int(item["isbn"])
-
         reason = item["reason"]
 
         book = books[books["isbn13"] == isbn].iloc[0]
 
         description = book["description"]
-
         truncated = " ".join(description.split()[:25]) + "..."
 
         caption = f"{book['title']} by {book['authors']}\n{truncated}"
@@ -52,7 +49,10 @@ def chat_recommend(describe, category, emotion, chat_history):
 
         message += f"**{book['title']}** — {reason}\n\n"
 
-    chat_history[-1] = (chat_history[-1][0], message)
+    chat_history.append({
+        "role": "assistant",
+        "content": message
+    })
 
     return chat_history, gallery
 
@@ -61,9 +61,12 @@ def add_user_message(describe, category, emotion, chat_history):
 
     query = build_query(describe, category, emotion)
 
-    chat_history.append((query, None))
+    chat_history.append({
+        "role": "user",
+        "content": query
+    })
 
-    return query, chat_history
+    return "", chat_history
 
 
 with gr.Blocks() as dashboard:
