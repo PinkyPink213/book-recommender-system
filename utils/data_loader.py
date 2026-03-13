@@ -1,10 +1,13 @@
 import pandas as pd
 import numpy as np
-
+import os
 
 def load_books():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
 
-    books = pd.read_csv("../data/books_with_emotions.csv")
+    data_path = os.path.join(base_dir, "..", "data", "books_with_emotions.csv")
+
+    books = pd.read_csv(data_path )
 
     books["large_thumbnail"] = books["thumbnail"] + "&fife=w800"
 
