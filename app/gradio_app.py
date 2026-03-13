@@ -4,7 +4,13 @@ from rag.pipeline import retrieve_semantic_recommendations
 from utils.data_loader import load_books
 from utils.query_builder import build_query
 
+import os
+import subprocess
 
+if not os.path.exists("vector_db"):
+    print("Building vector database...")
+    subprocess.run(["python", "scripts/vector_db_build.py"])
+    
 books = load_books()
 
 
