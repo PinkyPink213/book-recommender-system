@@ -1,5 +1,6 @@
 # 📚 Semantic Book Recommender (RAG)
 
+![alt text](./data/app.png)
 An end-to-end **Retrieval-Augmented Generation (RAG)** system that recommends books using **semantic search, query expansion, cross-encoder reranking, and LLM reasoning**.
 
 The system retrieves relevant books from a vector database and uses an LLM to generate personalized recommendations with explanations.
@@ -38,7 +39,7 @@ Query Expansion (LLM)
 Vector Search (Chroma + OpenAI Embeddings)
  │
  ▼
-Deduplication
+Deduplication + Filter by Category
  │
  ▼
 Cross Encoder Reranker (MS MARCO MiniLM)

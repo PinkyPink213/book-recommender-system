@@ -1,37 +1,48 @@
 import os
-from langchain_openai import ChatOpenAI
+from openai import OpenAI
 
+def book_recommend(context, query):
 
-def book_recommend(context):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    llm = ChatOpenAI(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        model="gpt-4o-mini"
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a book recommendation assistant. Only choose books from the provided candidate list."
+            },
+            {
+                "role": "user",
+                "content": f"""
+Candidate books retrieved from the database:
+
+{context}
+
+User request:
+{query}
+
+Choose EXACTLY 3 books from the candidate list that best match the user request.
+
+Rules:
+- Only choose books from the candidate list
+- Do not invent books
+- Prefer books that match the theme and category in the query
+
+Return JSON only:
+
+{{
+  "books": [
+    {{
+      "title": "",
+      "isbn": "",
+      "reason": ""
+    }}
+  ]
+}}
+"""
+            }
+        ]
     )
 
-    prompt = f"""
-    You are the book recommender assistant.
-
-    Here are candidate books retrieved from the database:
-
-    {context}
-
-    Choose the best 3 books ONLY from the candidate list.
-    Do not invent new books.
-
-    Return JSON:
-
-    {{
-    "books":[
-    {{
-    "title":"",
-    "isbn":"",
-    "reason":""
-    }}
-    ]
-    }}
-    """
-
-    answer = llm.invoke(prompt)
-
-    return answer.content
+    return response.choices[0].message.content

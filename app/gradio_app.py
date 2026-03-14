@@ -1,26 +1,82 @@
+import os
 import gradio as gr
-import json
+import subprocess
+from pathlib import Path
+import json 
+
 from rag.pipeline import retrieve_semantic_recommendations
 from utils.data_loader import load_books
 from utils.query_builder import build_query
 
-import os
+import shutil
 import subprocess
 
-if not os.path.exists("vector_db"):
-    print("Building vector database...")
-    subprocess.run(["python", "scripts/vector_db_build.py"])
+from langchain_openai import OpenAIEmbeddings
+from langchain_chroma import Chroma
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+VECTOR_DB_PATH = BASE_DIR / "vector_db"
+BUILD_SCRIPT = BASE_DIR / "scripts" / "vector_db_build.py"
+
+
+def ensure_vector_db():
+
+    folder_exists = VECTOR_DB_PATH.exists()
+    folder_not_empty = folder_exists and any(VECTOR_DB_PATH.iterdir())
+
+    doc_count = 0
+
+    if folder_not_empty:
+
+        embeddings = OpenAIEmbeddings(
+            api_key=os.getenv("OPENAI_API_KEY")
+        )
+
+        db = Chroma(
+            collection_name="books",
+            persist_directory=str(VECTOR_DB_PATH),
+            embedding_function=embeddings
+        )
+
+        doc_count = db._collection.count()
+
+    print("Vector DB path:", VECTOR_DB_PATH)
+    print("Folder exists:", folder_exists)
+    print("Folder not empty:", folder_not_empty)
+    print("Docs in DB:", doc_count)
+
+    if not folder_exists or not folder_not_empty or doc_count == 0:
+
+        print("Vector DB missing or empty. Rebuilding...")
+
+        if folder_exists:
+            shutil.rmtree(VECTOR_DB_PATH)
+
+        subprocess.run(["python", str(BUILD_SCRIPT)], check=True)
+
+        print("Vector DB build complete")
+
+    else:
+        print("Vector DB already populated.")
+        
+def load_db():
+    embeddings = OpenAIEmbeddings(
+        api_key=os.getenv("OPENAI_API_KEY")
+    )
+
+    return Chroma(
+        collection_name="books",
+        persist_directory=str(VECTOR_DB_PATH),
+        embedding_function=embeddings
+    )
     
-books = load_books()
-
-
-def chat_recommend(describe, category, emotion, chat_history):
-
+def chat_recommend(describe, category, chat_history):
+    books = load_books()
     answer = retrieve_semantic_recommendations(
         describe,
         category,
-        emotion,
-        books
+        books,
+        db_books
     )
 
     answer = answer.strip()
@@ -57,9 +113,9 @@ def chat_recommend(describe, category, emotion, chat_history):
     return chat_history, gallery
 
 
-def add_user_message(describe, category, emotion, chat_history):
+def add_user_message(describe, category, chat_history):
 
-    query = build_query(describe, category, emotion)
+    query = build_query(describe, category)
 
     chat_history.append({
         "role": "user",
@@ -69,39 +125,56 @@ def add_user_message(describe, category, emotion, chat_history):
     return "", chat_history
 
 
-with gr.Blocks() as dashboard:
+def create_ui():
 
-    gr.Markdown("# 📚 Semantic Book Recommender")
+    books = load_books()
 
-    describe = gr.Textbox(label="Describe a book")
+    with gr.Blocks() as dashboard:
 
-    category = gr.Dropdown(
-        choices=["All"] + sorted(books["simple_categories"].unique()),
-        value="All",
-        label="Category"
+        gr.Markdown("# 📚 Semantic Book Recommender")
+
+        describe = gr.Textbox(label="Describe a book")
+
+        category = gr.Dropdown(
+            choices=["All"] + sorted(books["simple_categories"].unique()),
+            value="All",
+            label="Category"
+        )
+
+
+        submit = gr.Button("Find recommendations")
+
+        chatbot = gr.Chatbot(height=200)
+
+        gallery = gr.Gallery(columns=6)
+
+        submit.click(
+            fn=add_user_message,
+            inputs=[describe, category, chatbot],
+            outputs=[describe, chatbot]
+        ).then(
+            fn=chat_recommend,
+            inputs=[describe, category, chatbot],
+            outputs=[chatbot, gallery]
+        )
+
+    return dashboard
+
+
+def main():
+
+    ensure_vector_db()
+    global db_books
+    db_books = load_db()
+    dashboard = create_ui()
+
+    port = int(os.environ.get("PORT", 7860))
+
+    dashboard.launch(
+        server_name="0.0.0.0",
+        server_port=port
     )
 
-    emotion = gr.Dropdown(
-        choices=["All","Happy","Surprising","Angry","Suspenseful","Sad"],
-        value="All",
-        label="Emotion"
-    )
 
-    submit = gr.Button("Find recommendations")
-
-    chatbot = gr.Chatbot(height=200)
-
-    gallery = gr.Gallery(columns=6)
-
-    submit.click(
-        fn=add_user_message,
-        inputs=[describe, category, emotion, chatbot],
-        outputs=[describe, chatbot]
-    ).then(
-        fn=chat_recommend,
-        inputs=[describe, category, emotion, chatbot],
-        outputs=[chatbot, gallery]
-    )
-
-port = int(os.environ.get("PORT", 7860))
-dashboard.launch(server_name="0.0.0.0", server_port=port)
+if __name__ == "__main__":
+    main()
