@@ -1,5 +1,6 @@
 # 📚 Semantic Book Recommender (RAG)
 
+Demo Link : https://huggingface.co/spaces/Isariya/book-recommender-system
 ![alt text](./data/app.png)
 An end-to-end **Retrieval-Augmented Generation (RAG)** system that recommends books using **semantic search, query expansion, cross-encoder reranking, and LLM reasoning**.
 
