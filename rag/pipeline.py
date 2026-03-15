@@ -61,7 +61,7 @@ def retrieve_semantic_recommendations(describe, category, books, db_books):
         filtered_docs.append(doc)
 
     # rerank
-    top_docs = rerank(query, filtered_docs, top_k=7)
+    top_docs = rerank(query, filtered_docs, top_k=5)
 
     # build context
     context = ""

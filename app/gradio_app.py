@@ -122,7 +122,7 @@ def add_user_message(describe, category, chat_history):
         "content": query
     })
 
-    return "", chat_history
+    return describe, chat_history
 
 
 def create_ui():
